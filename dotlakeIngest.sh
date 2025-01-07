@@ -47,6 +47,27 @@ DB_CRED_PATH=$(yq '.databases[0].credentials_path' config.yaml)
 DB_DATASET=$(yq '.databases[0].dataset' config.yaml)
 DB_TABLE=$(yq '.databases[0].table' config.yaml)
 
+# Remove quotes from string variables
+CHAIN=$(echo $CHAIN | tr -d '"')
+RELAY_CHAIN=$(echo $RELAY_CHAIN | tr -d '"') 
+WSS=$(echo $WSS | tr -d '"')
+DB_TYPE=$(echo $DB_TYPE | tr -d '"')
+DB_PATH=$(echo $DB_PATH | tr -d '"')
+DB_PROJECT=$(echo $DB_PROJECT | tr -d '"')
+DB_CRED_PATH=$(echo $DB_CRED_PATH | tr -d '"')
+DB_DATASET=$(echo $DB_DATASET | tr -d '"')
+DB_TABLE=$(echo $DB_TABLE | tr -d '"')
+DB_HOST=$(echo $DB_HOST | tr -d '"')
+DB_PORT=$(echo $DB_PORT | tr -d '"')
+DB_USER=$(echo $DB_USER | tr -d '"')
+DB_PASSWORD=$(echo $DB_PASSWORD | tr -d '"')
+DB_NAME=$(echo $DB_NAME | tr -d '"')
+SQLALCHEMY_URI=$(echo $SQLALCHEMY_URI | tr -d '"')
+INGEST_MODE=$(echo $INGEST_MODE | tr -d '"')
+START_BLOCK=$(echo $START_BLOCK | tr -d '"')
+END_BLOCK=$(echo $END_BLOCK | tr -d '"')
+DB_CREDENTIALS=$(echo $DB_CREDENTIALS | tr -d '"')
+
 # Set default values for relay_chain and chain if empty
 if [[ -z "$RELAY_CHAIN" ]]; then
     echo "relay_chain not set in config.yaml, using default value 'solo'"
