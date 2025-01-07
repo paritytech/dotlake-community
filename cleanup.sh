@@ -1,7 +1,7 @@
 #!/bin/bash
 # Read configuration from config.yaml
-CREATE_DB=$(yq eval '.create_db' config.yaml)
-RETAIN_DB=$(yq eval '.retain_db' config.yaml)
+CREATE_DB=$(yq '.create_db' config.yaml)
+RETAIN_DB=$(yq '.retain_db' config.yaml)
 
 # Stop and remove containers started by docker-compose
 echo "Stopping docker-compose services..."
