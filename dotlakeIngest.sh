@@ -69,12 +69,12 @@ END_BLOCK=$(echo $END_BLOCK | tr -d '"')
 DB_CREDENTIALS=$(echo $DB_CREDENTIALS | tr -d '"')
 
 # Set default values for relay_chain and chain if empty
-if [[ -z "$RELAY_CHAIN" ]]; then
+if [[ -z "$RELAY_CHAIN" ]] || [[ "$RELAY_CHAIN" == "null" ]]; then
     echo "relay_chain not set in config.yaml, using default value 'solo'"
     RELAY_CHAIN="solo"
 fi
 
-if [[ -z "$CHAIN" ]]; then
+if [[ -z "$CHAIN" ]] || [[ "$CHAIN" == "null" ]]; then
     echo "chain not set in config.yaml, using default value 'substrate_chain'"
     CHAIN="substrate_chain" 
 fi
