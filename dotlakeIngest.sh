@@ -25,37 +25,62 @@ if ! command -v yq &> /dev/null; then
 fi
 
 # Read configuration from config.yaml
-RELAY_CHAIN=$(yq eval '.relay_chain' config.yaml)
-CHAIN=$(yq eval '.chain' config.yaml)
-WSS=$(yq eval '.wss' config.yaml)
-INGEST_MODE=$(yq eval '.ingest_mode' config.yaml)
-START_BLOCK=$(yq eval '.start_block' config.yaml)
-END_BLOCK=$(yq eval '.end_block' config.yaml)
-CREATE_DB=$(yq eval '.create_db' config.yaml)
-RETAIN_DB=$(yq eval '.retain_db' config.yaml)
+RELAY_CHAIN=$(yq '.relay_chain' config.yaml)
+CHAIN=$(yq '.chain' config.yaml)
+WSS=$(yq '.wss' config.yaml)
+INGEST_MODE=$(yq '.ingest_mode' config.yaml)
+START_BLOCK=$(yq '.start_block' config.yaml)
+END_BLOCK=$(yq '.end_block' config.yaml)
+CREATE_DB=$(yq '.create_db' config.yaml)
+RETAIN_DB=$(yq '.retain_db' config.yaml)
 
 
 # Database configuration
-DB_TYPE=$(yq eval '.databases[0].type' config.yaml)
-DB_HOST=$(yq eval '.databases[0].host' config.yaml)
-DB_PORT=$(yq eval '.databases[0].port' config.yaml)
-DB_NAME=$(yq eval '.databases[0].name' config.yaml)
-DB_USER=$(yq eval '.databases[0].user' config.yaml)
-DB_PASSWORD=$(yq eval '.databases[0].password' config.yaml)
-DB_PROJECT=$(yq eval '.databases[0].project_id' config.yaml)
-DB_CRED_PATH=$(yq eval '.databases[0].credentials_path' config.yaml)
-DB_DATASET=$(yq eval '.databases[0].dataset' config.yaml)
-DB_TABLE=$(yq eval '.databases[0].table' config.yaml)
+DB_TYPE=$(yq '.databases[0].type' config.yaml)
+DB_HOST=$(yq '.databases[0].host' config.yaml)
+DB_PORT=$(yq '.databases[0].port' config.yaml)
+DB_NAME=$(yq '.databases[0].name' config.yaml)
+DB_USER=$(yq '.databases[0].user' config.yaml)
+DB_PASSWORD=$(yq '.databases[0].password' config.yaml)
+DB_PROJECT=$(yq '.databases[0].project_id' config.yaml)
+DB_CRED_PATH=$(yq '.databases[0].credentials_path' config.yaml)
+DB_DATASET=$(yq '.databases[0].dataset' config.yaml)
+DB_TABLE=$(yq '.databases[0].table' config.yaml)
 
+# Remove quotes from string variables
+CHAIN=$(echo $CHAIN | tr -d '"')
+RELAY_CHAIN=$(echo $RELAY_CHAIN | tr -d '"') 
+WSS=$(echo $WSS | tr -d '"')
+DB_TYPE=$(echo $DB_TYPE | tr -d '"')
+DB_PATH=$(echo $DB_PATH | tr -d '"')
+DB_PROJECT=$(echo $DB_PROJECT | tr -d '"')
+DB_CRED_PATH=$(echo $DB_CRED_PATH | tr -d '"')
+DB_DATASET=$(echo $DB_DATASET | tr -d '"')
+DB_TABLE=$(echo $DB_TABLE | tr -d '"')
+DB_HOST=$(echo $DB_HOST | tr -d '"')
+DB_PORT=$(echo $DB_PORT | tr -d '"')
+DB_USER=$(echo $DB_USER | tr -d '"')
+DB_PASSWORD=$(echo $DB_PASSWORD | tr -d '"')
+DB_NAME=$(echo $DB_NAME | tr -d '"')
+SQLALCHEMY_URI=$(echo $SQLALCHEMY_URI | tr -d '"')
+INGEST_MODE=$(echo $INGEST_MODE | tr -d '"')
+START_BLOCK=$(echo $START_BLOCK | tr -d '"')
+END_BLOCK=$(echo $END_BLOCK | tr -d '"')
+DB_CREDENTIALS=$(echo $DB_CREDENTIALS | tr -d '"')
+
+# Set default values for relay_chain and chain if empty
+if [[ -z "$RELAY_CHAIN" ]]; then
+    echo "relay_chain not set in config.yaml, using default value 'solo'"
+    RELAY_CHAIN="solo"
+fi
+
+if [[ -z "$CHAIN" ]]; then
+    echo "chain not set in config.yaml, using default value 'substrate_chain'"
+    CHAIN="substrate_chain" 
+fi
 
 # Create SQLAlchemy URI for Postgres or MySQL
-if [[ $(yq eval '.databases[0].type' config.yaml) == "postgres" ]]; then
-    SQLALCHEMY_URI="postgres+psycopg2://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
-elif [[ $(yq eval '.databases[0].type' config.yaml) == "mysql" ]]; then
-    SQLALCHEMY_URI="mysql+mysqldb://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
-elif [[ $(yq eval '.databases[0].type' config.yaml) == "bigquery" ]]; then
-    SQLALCHEMY_URI="bigquery://${DB_PROJECT}"
-elif [[ "$CREATE_DB" == "true" ]]; then
+if [[ "$CREATE_DB" == "true" ]]; then
     echo "Using local PostgreSQL database"
     DB_TYPE="postgres"
     DB_HOST="172.18.0.1" 
@@ -64,6 +89,12 @@ elif [[ "$CREATE_DB" == "true" ]]; then
     DB_USER="postgres"
     DB_PASSWORD="postgres"
     SQLALCHEMY_URI="postgresql://${DB_USER}:${DB_PASSWORD}@host.docker.internal:${DB_PORT}/${DB_NAME}"
+elif [[ $(yq '.databases[0].type' config.yaml) == "postgres" ]]; then
+    SQLALCHEMY_URI="postgres+psycopg2://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+elif [[ $(yq '.databases[0].type' config.yaml) == "mysql" ]]; then
+    SQLALCHEMY_URI="mysql+mysqldb://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+elif [[ $(yq '.databases[0].type' config.yaml) == "bigquery" ]]; then
+    SQLALCHEMY_URI="bigquery://${DB_PROJECT}"
 fi
 
 echo "SQLAlchemy URI created: ${SQLALCHEMY_URI}"

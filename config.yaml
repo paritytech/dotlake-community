@@ -3,13 +3,13 @@ chain: Polkadot
 wss: wss://polkadot-rpc.dwellir.com
 create_db: true  # Set to true if database needs to be created
 retain_db: true  # Set to true to retain database after the end of process.
-# databases:
-#   - type: postgres
-#     host: xx.xx.xx.xx
-#     port: 5432
-#     name: dotlake
-#     user: *****
-#     password: ******
+databases:
+  - type: postgres
+    host: 0.0.0.0 # Update the host ip
+    port: 5432
+    name: dotlake
+    user: username # Update the user
+    password: password # Update the password of the user
 ingest_mode: live  # live/historical
 start_block: 1
 end_block: 100

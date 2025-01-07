@@ -52,8 +52,10 @@ services:
       - ./superset_home:/app/superset_home
     environment:
       - SUPERSET_SECRET_KEY=your_secret_key_here
+    user: "root"
     command: >
-      bash -c "pip install psycopg2-binary &&
+      bash -c "chown -R superset:superset /app/superset_home &&
+               pip install psycopg2-binary &&
                superset db upgrade &&
                superset init &&
                superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger"

@@ -25,32 +25,41 @@ cd dotlake-community
 ```
 
 2. Configure your settings in `config.yaml`:
-```yaml
-relay_chain: Polkadot
-chain: Polkadot
-wss: wss://polkadot-rpc.dwellir.com
-create_db: true  # Set to true if database needs to be created
-retain_db: true  # Set to true to retain database after the end of process.
-# databases:
-#   - type: postgres
-#     host: xx.xx.xx.xx
-#     port: 5432
-#     name: dotlake
-#     user: *****
-#     password: ******
-ingest_mode: live  # live/historical
-start_block: 1
-end_block: 100
-```
+
+The `config.yaml` file contains the following configuration options:
+
+### Required Fields
+
+- `relay_chain`: Name of the relay chain (e.g., "Polkadot", "Kusama", "solo"). Defaults to "solo" if not specified
+- `chain`: Name of the chain to index (e.g., "Polkadot", "Kusama", "substrate_chain"). Defaults to "substrate_chain" if not specified
+- `wss`: WebSocket endpoint URL for the chain node
+- `ingest_mode`: Mode of operation ("live" or "historical")
+- `start_block`: Starting block number for ingestion (only applies for historical mode)
+- `end_block`: Ending block number for ingestion (only applies for historical mode)
+
+### Database Configuration
+
+- `create_db`: Set to `true` to create a new local PostgreSQL database, `false` to use existing database
+- `retain_db`: Set to `true` to keep the database after cleanup, `false` to remove it (only applies when `create_db` is `true`)
+- `databases`: Database connection details (required if create_db is false)
+  ```yaml
+  databases:
+    - type: postgres         # Database type (postgres/mysql)
+      host: 0.0.0.0          # Database host address
+      port: 5432             # Database port
+      name: dotlake          # Database name
+      user: username         # Database username
+      password: password     # Database password
+  ```
 
 3. Start the ingestion pipeline:
 ```bash
-sh dotlakeIngest.sh
+bash dotlakeIngest.sh
 ```
 
 4. To stop the ingestion and cleanup resources:
 ```bash
-sh cleanup.sh
+bash cleanup.sh
 ```
 
 ## Architecture
