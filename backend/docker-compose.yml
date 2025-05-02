@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_TYPE=postgres
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=dotlake
+      - CHAIN=polkadot
+      - RELAY_CHAIN=polkadot
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    networks:
+      - dotlake-network
+
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=dotlake
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dotlake-network
+
+networks:
+  dotlake-network:
+    driver: bridge
+
+volumes:
+  postgres_data: 

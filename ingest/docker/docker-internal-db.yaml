@@ -9,6 +9,8 @@ services:
       - SAS_SUBSTRATE_URL=${WSS}
     ports:
       - "8080:8080"
+    networks:
+      - dotlake_network
 
   app:
     container_name: subindex-ingest
@@ -42,6 +44,47 @@ services:
         chmod +x start-ingest.sh &&
         ./start-ingest.sh
       "
+    networks:
+      - dotlake_network
+
+  backend:
+    container_name: dotlake-backend
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_TYPE=${DB_TYPE}
+      - DATABASE_HOST=${DB_HOST}
+      - DATABASE_PORT=${DB_PORT}
+      - DATABASE_USER=${DB_USER}
+      - DATABASE_PASSWORD=${DB_PASSWORD}
+      - DATABASE_NAME=${DB_NAME}
+      - DATABASE_PROJECT=${DB_PROJECT}
+      - DATABASE_DATASET=${DB_DATASET}
+      - DATABASE_TABLE=${DB_TABLE}
+      - DATABASE_CRED_PATH=${CREDENTIALS_PATH}
+      - CHAIN=${CHAIN}
+      - RELAY_CHAIN=${RELAY_CHAIN}
+    volumes:
+      - ../../backend:/app
+    depends_on:
+      - postgres
+    networks:
+      - dotlake_network
+
+  # frontend:
+  #   container_name: dotlake-frontend
+  #   build:
+  #     context: ../../frontend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - dotlake_network
 
   superset:
     image: apache/superset
@@ -59,6 +102,8 @@ services:
                superset db upgrade &&
                superset init &&
                superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger"
+    networks:
+      - dotlake_network
 
   postgres:
     image: postgres:15
@@ -71,13 +116,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data_v15:/var/lib/postgresql/data
+    networks:
+      - dotlake_network
 
 volumes:
   postgres_data_v15:
 
 networks:
-  default:
-    name: dotlake_network
+  dotlake_network:
     driver: bridge
     ipam:
       config:
