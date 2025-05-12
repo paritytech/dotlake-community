@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, AppBar, Toolbar, Typography, Container, Paper, Link } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Container, Paper, Link, Button } from '@mui/material';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import SearchBar from './SearchBar';
 
@@ -20,6 +20,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               Dotlake Explorer
             </Link>
           </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              component={RouterLink}
+              to="/blocks"
+              color="inherit"
+              sx={{ textTransform: 'none' }}
+            >
+              Blocks
+            </Button>
+            <Button
+              component={RouterLink}
+              to="/extrinsics"
+              color="inherit"
+              sx={{ textTransform: 'none' }}
+            >
+              Extrinsics
+            </Button>
+            <Button
+              component={RouterLink}
+              to="/events"
+              color="inherit"
+              sx={{ textTransform: 'none' }}
+            >
+              Events
+            </Button>
+          </Box>
         </Toolbar>
       </AppBar>
       <Container component="main" sx={{ mt: 4, mb: 4, flex: 1 }}>

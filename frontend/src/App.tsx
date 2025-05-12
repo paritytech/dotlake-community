@@ -11,6 +11,9 @@ import Home from './pages/Home';
 import BlockDetails from './pages/BlockDetails';
 import Search from './pages/Search';
 import ExtrinsicDetails from './pages/ExtrinsicDetails';
+import Blocks from './pages/Blocks';
+import Extrinsics from './pages/Extrinsics';
+import Events from './pages/Events';
 
 // Create theme
 const theme = createTheme({
@@ -41,9 +44,12 @@ function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/blocks" element={<Blocks />} />
               <Route path="/block/:blockNumber" element={<BlockDetails />} />
-              <Route path="/search" element={<Search />} />
+              <Route path="/extrinsics" element={<Extrinsics />} />
               <Route path="/extrinsic/:extrinsicId" element={<ExtrinsicDetails />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/search" element={<Search />} />
             </Routes>
           </Layout>
         </Router>

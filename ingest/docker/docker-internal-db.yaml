@@ -74,17 +74,17 @@ services:
     networks:
       - dotlake_network
 
-  # frontend:
-  #   container_name: dotlake-frontend
-  #   build:
-  #     context: ../../frontend
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     - backend
-  #   networks:
-  #     - dotlake_network
+  frontend:
+    container_name: dotlake-frontend
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - dotlake_network
 
   superset:
     image: apache/superset

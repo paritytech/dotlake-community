@@ -20,6 +20,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  TablePagination,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -32,70 +33,90 @@ interface ExtrinsicDetailsData {
     pallet: string;
     method: string;
   };
-  signature: {
-    signer: {
+  signature?: {
+    signer?: {
       id: string;
     };
-    signature: string;
-    nonce: string;
+    signature?: string;
   };
+  nonce?: string;
   args: Record<string, any>;
-  info: {
-    weight: {
-      refTime: string;
-      proofSize: string;
-    };
-    class: string;
-    partialFee: string;
-    kind: string;
+  tip?: string;
+  hash?: string;
+  info?: Record<string, any>;
+  era?: {
+    period?: string;
+    phase?: string;
   };
-  era: {
-    period: string;
-    phase: string;
-  };
-  hash: string;
-  tip: string;
   success: boolean;
   pays_fee: boolean;
-  events: Array<{
-    method: {
-      pallet: string;
-      method: string;
-    };
-    data: Record<string, any>;
-  }>;
   index: string;
-  block_number: string;
+  relay_chain: string;
+  chain: string;
+  timestamp: number;
+  number: string;
+  block_hash: string;
+  event_count: number;
+}
+
+interface Event {
+  relay_chain: string;
+  chain: string;
+  timestamp: number;
+  number: string;
+  hash: string;
+  extrinsic_id?: string;
+  event_id: string;
+  pallet: string;
+  method: string;
+  data: Record<string, any>;
+  source: string;
 }
 
 const ExtrinsicDetails: React.FC = () => {
   const { extrinsicId } = useParams<{ extrinsicId: string }>();
   const navigate = useNavigate();
   const [extrinsic, setExtrinsic] = useState<ExtrinsicDetailsData | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalEvents, setTotalEvents] = useState(0);
 
   useEffect(() => {
-    const fetchExtrinsic = async () => {
+    const fetchExtrinsicAndEvents = async () => {
       if (!extrinsicId) return;
       setLoading(true);
       setError(null);
       try {
         const [blockNumber, index] = extrinsicId.split('-');
-        const response = await api.get(`/blocks/${blockNumber}/extrinsics`, {
+        
+        // Fetch extrinsic details
+        const extrinsicResponse = await api.get(`/blocks/${blockNumber}/extrinsics`, {
           params: {
             page: 1,
             page_size: 1,
-            index: index
+            extrinsic_id: extrinsicId
           }
         });
-        if (response.data.extrinsics.length > 0) {
-          setExtrinsic({
-            ...response.data.extrinsics[0],
-            block_number: blockNumber
+        
+        if (extrinsicResponse.data.extrinsics.length > 0) {
+          setExtrinsic(extrinsicResponse.data.extrinsics[0]);
+          
+          // Fetch associated events with pagination
+          const eventsResponse = await api.get(`/blocks/${blockNumber}/events`, {
+            params: {
+              page: page + 1,
+              page_size: rowsPerPage,
+              extrinsic_id: extrinsicId
+            }
           });
+          
+          setEvents(eventsResponse.data.events);
+          setTotalEvents(eventsResponse.data.total);
         } else {
           setError('Extrinsic not found');
         }
@@ -106,8 +127,17 @@ const ExtrinsicDetails: React.FC = () => {
       }
     };
 
-    fetchExtrinsic();
-  }, [extrinsicId]);
+    fetchExtrinsicAndEvents();
+  }, [extrinsicId, page, rowsPerPage]);
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   const handleCopyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -119,6 +149,33 @@ const ExtrinsicDetails: React.FC = () => {
     if (!hash) return '-';
     return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
   };
+
+  const TableCellWithEllipsis = ({ children }: { children: React.ReactNode }) => (
+    <TableCell>
+      <Box
+        sx={{
+          maxWidth: '200px',
+          overflow: 'auto',
+          whiteSpace: 'nowrap',
+          '&::-webkit-scrollbar': {
+            height: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: '#f1f1f1',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#888',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: '#555',
+          },
+        }}
+      >
+        {children}
+      </Box>
+    </TableCell>
+  );
 
   if (loading) {
     return (
@@ -179,10 +236,10 @@ const ExtrinsicDetails: React.FC = () => {
         </Box>
         <Link
           component={RouterLink}
-          to={`/block/${extrinsic.block_number}`}
+          to={`/block/${extrinsic.number}`}
           sx={{ ml: 2 }}
         >
-          View Block #{extrinsic.block_number}
+          View Block #{extrinsic.number}
         </Link>
       </Box>
 
@@ -193,25 +250,25 @@ const ExtrinsicDetails: React.FC = () => {
               <TableCell component="th" scope="row" sx={{ width: '200px', bgcolor: 'background.default' }}>
                 Hash
               </TableCell>
-              <TableCell sx={{ fontFamily: 'monospace' }}>
+              <TableCellWithEllipsis>
                 <Box display="flex" alignItems="center" gap={1}>
-                  {formatHash(extrinsic.hash)}
+                  {formatHash(extrinsic.hash || '')}
                   <IconButton 
                     size="small" 
-                    onClick={() => handleCopyToClipboard(extrinsic.hash, 'Hash')}
+                    onClick={() => handleCopyToClipboard(extrinsic.hash || '', 'Hash')}
                   >
                     <ContentCopyIcon fontSize="small" />
                   </IconButton>
                 </Box>
-              </TableCell>
+              </TableCellWithEllipsis>
             </TableRow>
             <TableRow>
               <TableCell component="th" scope="row" sx={{ bgcolor: 'background.default' }}>
                 Method
               </TableCell>
-              <TableCell sx={{ fontFamily: 'monospace' }}>
+              <TableCellWithEllipsis>
                 {`${extrinsic.method.pallet}.${extrinsic.method.method}`}
-              </TableCell>
+              </TableCellWithEllipsis>
             </TableRow>
             <TableRow>
               <TableCell component="th" scope="row" sx={{ bgcolor: 'background.default' }}>
@@ -223,36 +280,12 @@ const ExtrinsicDetails: React.FC = () => {
                   {extrinsic.signature?.signer?.id && (
                     <IconButton 
                       size="small" 
-                      onClick={() => handleCopyToClipboard(extrinsic.signature.signer.id, 'Signer')}
+                      onClick={() => handleCopyToClipboard(extrinsic.signature!.signer!.id, 'Signer')}
                     >
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   )}
                 </Box>
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell component="th" scope="row" sx={{ bgcolor: 'background.default' }}>
-                Nonce
-              </TableCell>
-              <TableCell sx={{ fontFamily: 'monospace' }}>
-                {extrinsic.signature?.nonce || '-'}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell component="th" scope="row" sx={{ bgcolor: 'background.default' }}>
-                Era
-              </TableCell>
-              <TableCell>
-                {extrinsic.era ? `Period: ${extrinsic.era.period}, Phase: ${extrinsic.era.phase}` : '-'}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell component="th" scope="row" sx={{ bgcolor: 'background.default' }}>
-                Tip
-              </TableCell>
-              <TableCell>
-                {extrinsic.tip || '-'}
               </TableCell>
             </TableRow>
             <TableRow>
@@ -283,90 +316,93 @@ const ExtrinsicDetails: React.FC = () => {
         </Table>
       </TableContainer>
 
-      <Accordion defaultExpanded>
+      <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography>Arguments</Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <pre style={{ 
-            fontFamily: 'monospace',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            margin: 0
-          }}>
-            {JSON.stringify(extrinsic.args, null, 2)}
-          </pre>
+          <Box sx={{ maxHeight: '400px', overflow: 'auto' }}>
+            <pre style={{ 
+              fontFamily: 'monospace',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              margin: 0
+            }}>
+              {JSON.stringify(extrinsic.args, null, 2)}
+            </pre>
+          </Box>
         </AccordionDetails>
       </Accordion>
 
-      <Accordion defaultExpanded sx={{ mt: 2 }}>
+      <Accordion sx={{ mt: 2 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Info</Typography>
+          <Typography>Events ({totalEvents})</Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableBody>
-                <TableRow>
-                  <TableCell>Weight</TableCell>
-                  <TableCell>
-                    RefTime: {extrinsic.info?.weight?.refTime || '-'}
-                    <br />
-                    ProofSize: {extrinsic.info?.weight?.proofSize || '-'}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Class</TableCell>
-                  <TableCell>{extrinsic.info?.class || '-'}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Partial Fee</TableCell>
-                  <TableCell>{extrinsic.info?.partialFee || '-'}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Kind</TableCell>
-                  <TableCell>{extrinsic.info?.kind || '-'}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion defaultExpanded sx={{ mt: 2 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Events ({extrinsic.events.length})</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Pallet</TableCell>
-                  <TableCell>Method</TableCell>
-                  <TableCell>Data</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {extrinsic.events.map((event, index) => (
-                  <TableRow key={index} hover>
-                    <TableCell>{event.method.pallet}</TableCell>
-                    <TableCell>{event.method.method}</TableCell>
-                    <TableCell>
-                      <pre style={{ 
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                        margin: 0
-                      }}>
-                        {JSON.stringify(event.data, null, 2)}
-                      </pre>
-                    </TableCell>
+          <Box sx={{ maxHeight: '400px', overflow: 'auto' }}>
+            <TableContainer>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: '200px' }}>Event ID</TableCell>
+                    <TableCell sx={{ width: '200px' }}>Pallet</TableCell>
+                    <TableCell sx={{ width: '200px' }}>Method</TableCell>
+                    <TableCell sx={{ width: '400px' }}>Data</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {events.map((event) => (
+                    <TableRow key={event.event_id} hover>
+                      <TableCellWithEllipsis>{event.event_id}</TableCellWithEllipsis>
+                      <TableCellWithEllipsis>{event.pallet}</TableCellWithEllipsis>
+                      <TableCellWithEllipsis>{event.method}</TableCellWithEllipsis>
+                      <TableCell>
+                        <Box
+                          sx={{
+                            maxWidth: '400px',
+                            maxHeight: '100px',
+                            overflow: 'auto',
+                            '&::-webkit-scrollbar': {
+                              width: '8px',
+                              height: '8px',
+                            },
+                            '&::-webkit-scrollbar-track': {
+                              background: '#f1f1f1',
+                            },
+                            '&::-webkit-scrollbar-thumb': {
+                              background: '#888',
+                              borderRadius: '4px',
+                            },
+                            '&::-webkit-scrollbar-thumb:hover': {
+                              background: '#555',
+                            },
+                          }}
+                        >
+                          <pre style={{ 
+                            fontFamily: 'monospace',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            margin: 0
+                          }}>
+                            {JSON.stringify(event.data, null, 2)}
+                          </pre>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+          <TablePagination
+            component="div"
+            count={totalEvents}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[10, 25, 50]}
+          />
         </AccordionDetails>
       </Accordion>
 

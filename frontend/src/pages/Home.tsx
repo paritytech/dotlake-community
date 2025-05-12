@@ -14,31 +14,21 @@ import {
   Grid,
 } from '@mui/material';
 import { fetchRecentBlocks } from '../store/slices/blocksSlice';
+import { fetchRecentExtrinsics } from '../store/slices/extrinsicsSlice';
 import { AppDispatch, RootState } from '../store';
 
 interface Block {
-  number: number;
+  number: string;
   hash: string;
+  parenthash: string;
+  stateroot: string;
+  extrinsicsroot: string;
   timestamp: number;
-  extrinsics?: any[];
-}
-
-interface Extrinsic {
-  method: {
-    pallet: string;
-    method: string;
-  };
-  hash: string;
-  success: boolean;
-  paysFee: boolean;
-  signature?: {
-    signer: {
-      id: string;
-    };
-  };
-  events: any[];
-  blockNumber: number;
-  timestamp: number;
+  authorid: string;
+  finalized: boolean;
+  extrinsics_count: number;
+  events_count: number;
+  logs_count: number;
 }
 
 const formatTimeAgo = (timestamp: number): string => {
@@ -57,35 +47,30 @@ const formatTimeAgo = (timestamp: number): string => {
 
 const Home: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { recentBlocks, loading, error } = useSelector((state: RootState) => state.blocks);
+  const { recentBlocks, loading: blocksLoading, error: blocksError } = useSelector((state: RootState) => state.blocks);
+  const { recentExtrinsics, loading: extrinsicsLoading, error: extrinsicsError } = useSelector((state: RootState) => state.extrinsics);
 
   useEffect(() => {
     // Initial fetch
     dispatch(fetchRecentBlocks());
+    dispatch(fetchRecentExtrinsics());
 
-    // Set up periodic refresh every 10 seconds
+    // Set up periodic refresh every 30 seconds
     const intervalId = setInterval(() => {
       dispatch(fetchRecentBlocks());
+      dispatch(fetchRecentExtrinsics());
     }, 30000);
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
   }, [dispatch]);
 
-  if (loading) return <Typography>Loading...</Typography>;
-  if (error) return <Typography color="error">{error}</Typography>;
+  if (blocksLoading || extrinsicsLoading) return <Typography>Loading...</Typography>;
+  if (blocksError) return <Typography color="error">{blocksError}</Typography>;
+  if (extrinsicsError) return <Typography color="error">{extrinsicsError}</Typography>;
 
   // Get the 10 most recent blocks
   const recentBlocksList = recentBlocks.slice(0, 10);
-
-  // Get all extrinsics from recent blocks and sort by timestamp
-  const allExtrinsics = recentBlocks.flatMap(block => 
-    (block.extrinsics || []).map(extrinsic => ({
-      ...extrinsic,
-      blockNumber: block.number,
-      timestamp: block.timestamp
-    }))
-  ).sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
 
   return (
     <Container>
@@ -115,7 +100,7 @@ const Home: React.FC = () => {
                       </Link>
                     </TableCell>
                     <TableCell>{formatTimeAgo(block.timestamp)}</TableCell>
-                    <TableCell>{block.extrinsics?.length || 0}</TableCell>
+                    <TableCell>{block.extrinsics_count || 0}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -138,19 +123,19 @@ const Home: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {allExtrinsics.map((extrinsic: Extrinsic, index: number) => (
-                  <TableRow key={index} hover>
+                {recentExtrinsics.slice(0, 10).map((extrinsic) => (
+                  <TableRow key={extrinsic.hash} hover>
                     <TableCell>
                       <Typography variant="body2" noWrap>
-                        {`${extrinsic.method?.pallet || ''}.${extrinsic.method?.method || ''}`}
+                        {`${extrinsic.method.pallet}.${extrinsic.method.method}`}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Link 
-                        to={`/block/${extrinsic.blockNumber}`}
+                        to={`/block/${extrinsic.number}`}
                         style={{ textDecoration: 'none', color: '#E6007A' }}
                       >
-                        {extrinsic.blockNumber}
+                        {extrinsic.number}
                       </Link>
                     </TableCell>
                     <TableCell>

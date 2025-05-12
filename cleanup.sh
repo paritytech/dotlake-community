@@ -11,12 +11,12 @@ if [ "$CREATE_DB" == "false" ]; then
     echo "Docker compose services stopped successfully."
 elif [ "$CREATE_DB" == "true" ]; then
     if [ "$RETAIN_DB" == "true" ]; then
-        docker stop dotlake_sidecar_instance subindex-ingest superset dotlake-backend
-        docker rm dotlake_sidecar_instance subindex-ingest superset dotlake-backend
+        docker stop dotlake_sidecar_instance subindex-ingest superset dotlake-backend dotlake-frontend
+        docker rm dotlake_sidecar_instance subindex-ingest superset dotlake-backend dotlake-frontend
         echo "Docker services stopped successfully (keeping postgres running)."
     else
-        docker stop dotlake_sidecar_instance subindex-ingest superset postgres_db dotlake-backend
-        docker rm dotlake_sidecar_instance subindex-ingest superset postgres_db dotlake-backend
+        docker stop dotlake_sidecar_instance subindex-ingest superset postgres_db dotlake-backend dotlake-frontend
+        docker rm dotlake_sidecar_instance subindex-ingest superset postgres_db dotlake-backend dotlake-frontend
         echo "All docker services including database stopped and removed."
     fi
 else

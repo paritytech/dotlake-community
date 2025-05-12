@@ -38,16 +38,44 @@ interface Event {
   method: string;
   data: any;
   source: string;
-  extrinsic_index?: number;
+  extrinsic_id?: number;
+}
+
+interface Log {
+  type: string;
+  index: string;
+  value: any;
 }
 
 const BlockDetails: React.FC = () => {
   const { blockNumber } = useParams<{ blockNumber: string }>();
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  
   const { currentBlock, loading, error, latestBlockNumber, oldestBlockNumber } = useSelector(
     (state: RootState) => state.blocks
   );
+
+  // Convert block numbers to strings for consistent comparison
+  const requestedBlockNumber = blockNumber || '0';
+  const latestBlockStr = latestBlockNumber.toString();
+  const oldestBlockStr = oldestBlockNumber.toString();
+  
+  // Compare block numbers as strings, padded to same length for correct string comparison
+  const padToSameLength = (...nums: string[]) => {
+    const maxLength = Math.max(...nums.map(n => n.length));
+    return nums.map(n => n.padStart(maxLength, '0'));
+  };
+  
+  const [paddedRequested, paddedLatest, paddedOldest] = padToSameLength(
+    requestedBlockNumber,
+    latestBlockStr,
+    oldestBlockStr
+  );
+  
+  const isFutureBlock = paddedRequested > paddedLatest;
+  const isOldBlock = oldestBlockNumber > 0 && paddedRequested < paddedOldest;
+
   const [events, setEvents] = useState<Event[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState<string | null>(null);
@@ -62,10 +90,9 @@ const BlockDetails: React.FC = () => {
   const [totalExtrinsics, setTotalExtrinsics] = useState(0);
   const [totalEventsPages, setTotalEventsPages] = useState(0);
   const [totalExtrinsicsPages, setTotalExtrinsicsPages] = useState(0);
-
-  const requestedBlockNumber = parseInt(blockNumber || '0');
-  const isFutureBlock = requestedBlockNumber > latestBlockNumber;
-  const isOldBlock = oldestBlockNumber > 0 && requestedBlockNumber < oldestBlockNumber;
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     if (!blockNumber) return;
@@ -109,19 +136,41 @@ const BlockDetails: React.FC = () => {
     }
   }, [blockNumber, extrinsicsPage]);
 
+  const fetchLogs = useCallback(async () => {
+    if (!blockNumber) return;
+    setLogsLoading(true);
+    setLogsError(null);
+    try {
+      const response = await api.get(`/blocks/${blockNumber}/logs`);
+      setLogs(response.data.logs);
+    } catch (err) {
+      setLogsError('Failed to fetch logs');
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [blockNumber]);
+
   useEffect(() => {
     if (blockNumber && !isFutureBlock && !isOldBlock) {
+      console.log('Fetching block:', blockNumber);
       dispatch(fetchBlock(blockNumber));
       fetchEvents();
       fetchExtrinsics();
+      fetchLogs();
     }
-  }, [dispatch, blockNumber, isFutureBlock, isOldBlock, fetchEvents, fetchExtrinsics]);
+  }, [dispatch, blockNumber, isFutureBlock, isOldBlock, fetchEvents, fetchExtrinsics, fetchLogs]);
 
   const handleNavigate = (direction: 'prev' | 'next') => {
     if (!blockNumber) return;
     const newBlockNumber = direction === 'next' 
       ? parseInt(blockNumber) + 1 
       : parseInt(blockNumber) - 1;
+    
+    // Update latestBlockNumber if navigating to a newer block
+    if (direction === 'next' && newBlockNumber > latestBlockNumber) {
+      dispatch(fetchBlock(newBlockNumber.toString()));
+    }
+    
     navigate(`/block/${newBlockNumber}`);
   };
 
@@ -132,7 +181,7 @@ const BlockDetails: React.FC = () => {
   };
 
   const getEstimatedTime = () => {
-    const blocksToWait = requestedBlockNumber - latestBlockNumber;
+    const blocksToWait = parseInt(paddedRequested) - latestBlockNumber;
     const secondsToWait = blocksToWait * BLOCK_TIME;
     const estimatedTime = new Date(Date.now() + secondsToWait * 1000);
     return estimatedTime.toLocaleString();
@@ -501,17 +550,17 @@ const BlockDetails: React.FC = () => {
                 ) : events.map((event, index) => (
                   <TableRow key={index} hover>
                     <TableCell>
-                      {event.extrinsic_index !== undefined ? (
+                      {event.extrinsic_id !== undefined ? (
                         <Link
                           component={RouterLink}
-                          to={`/extrinsic/${event.extrinsic_index}`}
+                          to={`/extrinsic/${event.extrinsic_id}`}
                           sx={{ 
                             textDecoration: 'none',
                             color: 'primary.main',
                             '&:hover': { textDecoration: 'underline' }
                           }}
                         >
-                          {event.extrinsic_index}
+                          {event.extrinsic_id}
                         </Link>
                       ) : '-'}
                     </TableCell>
@@ -534,6 +583,87 @@ const BlockDetails: React.FC = () => {
               />
             </Box>
           )}
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion defaultExpanded={false} sx={{ mt: 2 }}>
+        <AccordionSummary 
+          expandIcon={<ExpandMoreIcon />}
+          sx={{ 
+            bgcolor: 'background.paper',
+            '&:hover': { bgcolor: 'background.default' }
+          }}
+        >
+          <Typography>Logs ({logs.length})</Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ p: 0 }}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Index</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Value</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {logsLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center">
+                      <CircularProgress size={20} />
+                    </TableCell>
+                  </TableRow>
+                ) : logsError ? (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center" color="error">
+                      {logsError}
+                    </TableCell>
+                  </TableRow>
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center">
+                      No logs found
+                    </TableCell>
+                  </TableRow>
+                ) : logs.map((log) => (
+                  <TableRow key={log.index} hover>
+                    <TableCell>{log.index}</TableCell>
+                    <TableCell>{log.type}</TableCell>
+                    <TableCell>
+                      <Box sx={{ 
+                        maxWidth: '400px',
+                        maxHeight: '100px',
+                        overflow: 'auto',
+                        '&::-webkit-scrollbar': {
+                          width: '8px',
+                          height: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          background: '#f1f1f1',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          background: '#888',
+                          borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb:hover': {
+                          background: '#555',
+                        },
+                      }}>
+                        <pre style={{ 
+                          fontFamily: 'monospace',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          margin: 0
+                        }}>
+                          {JSON.stringify(log.value, null, 2)}
+                        </pre>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </AccordionDetails>
       </Accordion>
 
