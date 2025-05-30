@@ -127,6 +127,8 @@ fi
 cd ingest
 if [[ "$CREATE_DB" == "true" ]]; then
     docker compose -f docker/docker-internal-db.yaml up -d
+    sleep 10
+    docker compose -f docker/frontend-docker.yaml up -d
     # Wait for postgres to be ready
     sleep 30
 else
