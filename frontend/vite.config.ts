@@ -7,11 +7,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/extrinsics': {
-        target: 'http://localhost:8000',
+        target: 'http://backend:8000',
         changeOrigin: true,
       },
       '/blocks': {
-        target: 'http://localhost:8000',
+        target: 'http://backend:8000',
         changeOrigin: true,
       }
     }

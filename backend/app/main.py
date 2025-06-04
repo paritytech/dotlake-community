@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -11,6 +11,9 @@ from .postgres_utils import query
 # Load environment variables
 load_dotenv()
 
+# Create router with /api prefix
+router = APIRouter(prefix="/api")
+
 app = FastAPI(
     title="Dotlake Block Explorer API",
     description="API for exploring blockchain blocks and transactions",
@@ -20,7 +23,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://172.18.0.1:3000", "http://172.18.0.1:3001"],  # Frontend development servers
+    allow_origins=["*"],  # Allow all origins from port 3000
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -106,11 +109,11 @@ class PaginatedExtrinsicResponse(BaseModel):
     page_size: int
     total_pages: int
 
-@app.get("/")
+@router.get("/")
 async def root():
     return {"message": "Welcome to Dotlake Block Explorer API"}
 
-@app.get("/blocks/recent", response_model=RecentBlocksResponse)
+@router.get("/blocks/recent", response_model=RecentBlocksResponse)
 async def get_recent_blocks(limit: int = 50):
     """
     Get the most recent blocks
@@ -123,7 +126,7 @@ async def get_recent_blocks(limit: int = 50):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/blocks/{block_number}", response_model=BlockResponse)
+@router.get("/blocks/{block_number}", response_model=BlockResponse)
 async def get_block(block_number: str):
     """
     Get block details by block number
@@ -140,7 +143,7 @@ async def get_block(block_number: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/blocks/search")
+@router.get("/blocks/search")
 async def search_blocks(
     block_number: Optional[str] = None,
     hash: Optional[str] = None,
@@ -170,7 +173,7 @@ async def search_blocks(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/blocks/{block_number}/events", response_model=PaginatedEventResponse)
+@router.get("/blocks/{block_number}/events", response_model=PaginatedEventResponse)
 async def get_block_events(
     block_number: str,
     pallet: Optional[str] = Query(None, description="Filter events by pallet name"),
@@ -265,7 +268,7 @@ async def get_block_events(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.get("/extrinsics/recent", response_model=PaginatedExtrinsicResponse)
+@router.get("/extrinsics/recent", response_model=PaginatedExtrinsicResponse)
 async def get_recent_extrinsics(
     pallet: Optional[str] = Query(None, description="Filter extrinsics by pallet name"),
     method: Optional[str] = Query(None, description="Filter extrinsics by method name"),
@@ -361,7 +364,7 @@ async def get_recent_extrinsics(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/blocks/{block_number}/extrinsics", response_model=PaginatedExtrinsicResponse)
+@router.get("/blocks/{block_number}/extrinsics", response_model=PaginatedExtrinsicResponse)
 async def get_block_extrinsics(
     block_number: str,
     pallet: Optional[str] = Query(None, description="Filter extrinsics by pallet name"),
@@ -473,7 +476,7 @@ async def get_block_extrinsics(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.get("/blocks/{block_number}/logs")
+@router.get("/blocks/{block_number}/logs")
 async def get_block_logs(block_number: str):
     """
     Get logs for a specific block number
@@ -509,7 +512,7 @@ async def get_block_logs(block_number: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/blocks/hash/{block_hash}", response_model=BlockResponse)
+@router.get("/blocks/hash/{block_hash}", response_model=BlockResponse)
 async def get_block_by_hash(block_hash: str):
     """
     Get block details by block hash
@@ -527,7 +530,7 @@ async def get_block_by_hash(block_hash: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/extrinsics/hash/{extrinsic_hash}", response_model=ExtrinsicResponse)
+@router.get("/extrinsics/hash/{extrinsic_hash}", response_model=ExtrinsicResponse)
 async def get_extrinsic_by_hash(extrinsic_hash: str):
     """
     Get extrinsic details by extrinsic hash
@@ -588,6 +591,8 @@ async def get_extrinsic_by_hash(extrinsic_hash: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Include the router in the app
+app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
