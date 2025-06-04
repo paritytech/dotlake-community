@@ -43,6 +43,32 @@ services:
         ./start-ingest.sh
       "
 
+  db-maintenance:
+    container_name: dotlake-db-maintenance
+    image: python:3.9-slim
+    working_dir: /app
+    environment:
+      - RELAY_CHAIN=${RELAY_CHAIN}
+      - CHAIN=${CHAIN}
+      - DB_TYPE=${DB_TYPE}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ../:/app
+    command: >
+      bash -c "
+        pip install -r requirements.txt &&
+        echo 'Waiting for database to be ready...' &&
+        sleep 30 &&
+        python db_maintenance.py
+      "
+    depends_on:
+      - app
+    restart: always
+
   superset:
     image: apache/superset
     container_name: superset

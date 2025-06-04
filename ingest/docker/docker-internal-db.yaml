@@ -86,6 +86,38 @@ services:
     networks:
       - dotlake_network
 
+  db-maintenance:
+    container_name: dotlake-db-maintenance
+    image: python:3.9-slim
+    working_dir: /app
+    environment:
+      - DATABASE_TYPE=${DB_TYPE}
+      - DATABASE_HOST=${DB_HOST}
+      - DATABASE_PORT=${DB_PORT}
+      - DATABASE_USER=${DB_USER}
+      - DATABASE_PASSWORD=${DB_PASSWORD}
+      - DATABASE_NAME=${DB_NAME}
+      - DATABASE_PROJECT=${DB_PROJECT}
+      - DATABASE_DATASET=${DB_DATASET}
+      - DATABASE_TABLE=${DB_TABLE}
+      - DATABASE_CRED_PATH=${CREDENTIALS_PATH}
+      - CHAIN=${CHAIN}
+      - RELAY_CHAIN=${RELAY_CHAIN}
+    volumes:
+      - ../:/app
+    command: >
+      bash -c "
+        pip install -r requirements.txt &&
+        echo 'Waiting for database to be ready...' &&
+        sleep 30 &&
+        python db_maintenance.py
+      "
+    depends_on:
+      - app
+      - postgres
+    networks:
+      - dotlake_network
+
   superset:
     image: apache/superset
     container_name: superset
