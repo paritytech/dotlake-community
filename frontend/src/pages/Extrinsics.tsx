@@ -52,7 +52,6 @@ const formatTimeAgo = (timestamp: number): string => {
 
 const Extrinsics: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { latestBlockNumber } = useSelector((state: RootState) => state.blocks);
   const [extrinsics, setExtrinsics] = useState<Extrinsic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +81,7 @@ const Extrinsics: React.FC = () => {
     // Set up auto-refresh every 12 seconds
     const intervalId = setInterval(fetchExtrinsics, 12000);
     return () => clearInterval(intervalId);
-  }, [page, latestBlockNumber]);
+  }, [page]);
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);

@@ -30,6 +30,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { fetchBlock } from '../store/slices/blocksSlice';
 import { AppDispatch, RootState } from '../store';
 import api from '../api/axios';
+import type { Block } from '../store/slices/blocksSlice';
 
 const BLOCK_TIME = 6; // seconds
 
@@ -52,30 +53,17 @@ const BlockDetails: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   
-  const { currentBlock, loading, error, latestBlockNumber, oldestBlockNumber } = useSelector(
+  const { currentBlock, loading, error } = useSelector(
     (state: RootState) => state.blocks
-  );
+  ) as {
+    currentBlock: Block | null;
+    loading: boolean;
+    error: string | null;
+  };
 
   // Convert block numbers to strings for consistent comparison
   const requestedBlockNumber = blockNumber || '0';
-  const latestBlockStr = latestBlockNumber.toString();
-  const oldestBlockStr = oldestBlockNumber.toString();
   
-  // Compare block numbers as strings, padded to same length for correct string comparison
-  const padToSameLength = (...nums: string[]) => {
-    const maxLength = Math.max(...nums.map(n => n.length));
-    return nums.map(n => n.padStart(maxLength, '0'));
-  };
-  
-  const [paddedRequested, paddedLatest, paddedOldest] = padToSameLength(
-    requestedBlockNumber,
-    latestBlockStr,
-    oldestBlockStr
-  );
-  
-  const isFutureBlock = paddedRequested > paddedLatest;
-  const isOldBlock = oldestBlockNumber > 0 && paddedRequested < paddedOldest;
-
   const [events, setEvents] = useState<Event[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState<string | null>(null);
@@ -151,25 +139,20 @@ const BlockDetails: React.FC = () => {
   }, [blockNumber]);
 
   useEffect(() => {
-    if (blockNumber && !isFutureBlock && !isOldBlock) {
+    if (blockNumber) {
       console.log('Fetching block:', blockNumber);
       dispatch(fetchBlock(blockNumber));
       fetchEvents();
       fetchExtrinsics();
       fetchLogs();
     }
-  }, [dispatch, blockNumber, isFutureBlock, isOldBlock, fetchEvents, fetchExtrinsics, fetchLogs]);
+  }, [dispatch, blockNumber, fetchEvents, fetchExtrinsics, fetchLogs]);
 
   const handleNavigate = (direction: 'prev' | 'next') => {
     if (!blockNumber) return;
     const newBlockNumber = direction === 'next' 
       ? parseInt(blockNumber) + 1 
       : parseInt(blockNumber) - 1;
-    
-    // Update latestBlockNumber if navigating to a newer block
-    if (direction === 'next' && newBlockNumber > latestBlockNumber) {
-      dispatch(fetchBlock(newBlockNumber.toString()));
-    }
     
     navigate(`/block/${newBlockNumber}`);
   };
@@ -178,13 +161,6 @@ const BlockDetails: React.FC = () => {
     navigator.clipboard.writeText(text);
     setSnackbarMessage(`${label} copied to clipboard`);
     setSnackbarOpen(true);
-  };
-
-  const getEstimatedTime = () => {
-    const blocksToWait = parseInt(paddedRequested) - latestBlockNumber;
-    const secondsToWait = blocksToWait * BLOCK_TIME;
-    const estimatedTime = new Date(Date.now() + secondsToWait * 1000);
-    return estimatedTime.toLocaleString();
   };
 
   const formatHash = (hash: string) => {
@@ -200,7 +176,7 @@ const BlockDetails: React.FC = () => {
     setExtrinsicsPage(value);
   };
 
-  if (isOldBlock) {
+  if (error) {
     return (
       <Box p={3}>
         <Box display="flex" alignItems="center" gap={2} mb={3}>
@@ -225,45 +201,7 @@ const BlockDetails: React.FC = () => {
         </Box>
         <Alert severity="warning" sx={{ mb: 2 }}>
           <Typography variant="body1">
-            This block has not been indexed yet. The oldest indexed block is{' '}
-            <Link component={RouterLink} to={`/block/${oldestBlockNumber}`}>
-              #{oldestBlockNumber}
-            </Link>.
-          </Typography>
-        </Alert>
-      </Box>
-    );
-  }
-
-  if (isFutureBlock) {
-    return (
-      <Box p={3}>
-        <Box display="flex" alignItems="center" gap={2} mb={3}>
-          <Box display="flex" alignItems="center">
-            <Tooltip title="Previous Block">
-              <IconButton 
-                onClick={() => handleNavigate('prev')} 
-                disabled={parseInt(blockNumber!) <= 0}
-              >
-                <NavigateBeforeIcon />
-              </IconButton>
-            </Tooltip>
-            <Typography variant="h4">
-              Block #{blockNumber}
-            </Typography>
-            <Tooltip title="Next Block">
-              <IconButton onClick={() => handleNavigate('next')}>
-                <NavigateNextIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body1">
-            This block has not been produced yet. Current latest block is #{latestBlockNumber}.
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            Expected block time: {getEstimatedTime()}
+            Unfortunately, the requested block #{blockNumber} is missing or not available.
           </Typography>
         </Alert>
       </Box>
@@ -274,14 +212,6 @@ const BlockDetails: React.FC = () => {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box p={3}>
-        <Typography color="error">{error}</Typography>
       </Box>
     );
   }

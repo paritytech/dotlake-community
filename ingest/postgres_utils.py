@@ -2,6 +2,9 @@ import psycopg2
 from psycopg2 import Error
 import pandas as pd
 import json
+import os
+import subprocess
+import logging
 
 def connect_to_postgres(host, port, database, user, password):
     """
@@ -43,10 +46,10 @@ def create_tables(connection, chain, relay_chain):
     try:
         cursor = connection.cursor()
 
-        delete_table(connection, f"blocks_{relay_chain}_{chain}")
-        delete_table(connection, f"extrinsics_{relay_chain}_{chain}")
-        delete_table(connection, f"events_{relay_chain}_{chain}")
-        delete_table(connection, f"logs_{relay_chain}_{chain}")
+        # delete_table(connection, f"blocks_{relay_chain}_{chain}")
+        # delete_table(connection, f"extrinsics_{relay_chain}_{chain}")
+        # delete_table(connection, f"events_{relay_chain}_{chain}")
+        # delete_table(connection, f"logs_{relay_chain}_{chain}")
 
         cursor.execute(f"""
             CREATE TABLE IF NOT EXISTS blocks_{relay_chain}_{chain} (
@@ -408,3 +411,58 @@ def query(connection, query_str):
     finally:
         if cursor:
             cursor.close()
+
+def restore_database(host, port, database, user, password, restore_path):
+    """
+    Restore PostgreSQL database from a backup file.
+
+    Args:
+        host (str): The database host.
+        port (int): The database port.
+        database (str): The name of the database.
+        user (str): The database user.
+        password (str): The database password.
+        restore_path (str): Path to the backup file to restore from.
+
+    Returns:
+        bool: True if restore was successful, False otherwise.
+    """
+    if not os.path.exists(restore_path):
+        logging.error(f"Restore file not found at path: {restore_path}")
+        return False
+
+    try:
+        # Construct the pg_restore command
+        restore_cmd = [
+            'pg_restore',
+            '-h', host,
+            '-p', str(port),
+            '-U', user,
+            '-d', database,
+            '-v',  # verbose output
+            restore_path
+        ]
+
+        # Set PGPASSWORD environment variable for password authentication
+        env = os.environ.copy()
+        env['PGPASSWORD'] = password
+
+        # Execute the restore command
+        process = subprocess.Popen(
+            restore_cmd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout, stderr = process.communicate()
+
+        if process.returncode == 0:
+            logging.info("Database restore completed successfully")
+            return True
+        else:
+            logging.error(f"Database restore failed: {stderr.decode()}")
+            return False
+
+    except Exception as e:
+        logging.error(f"Error during database restore: {str(e)}")
+        return False

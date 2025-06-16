@@ -106,9 +106,9 @@ def query_last_block(db_connection, database_info: Dict[str, Any], chain: str, r
 
     if block_num is None:
         if database_info['database'] == 'bigquery':
-            fetch_last_block_query = f"SELECT * FROM {database_info['database_dataset']}.{database_info['database_table']} ORDER BY number DESC LIMIT 1"
+            fetch_last_block_query = f"SELECT * FROM {database_info['database_dataset']}.{database_info['database_table']} ORDER BY timestamp DESC LIMIT 1"
         else:
-            fetch_last_block_query = f"SELECT * FROM blocks_{relay_chain}_{chain} ORDER BY number DESC LIMIT 1"
+            fetch_last_block_query = f"SELECT * FROM blocks_{relay_chain}_{chain} ORDER BY timestamp DESC LIMIT 1"
     else:
         if database_info['database'] == 'bigquery':
             fetch_last_block_query = f"SELECT * FROM {database_info['database_dataset']}.{database_info['database_table']} WHERE number='{block_num}' LIMIT 1"

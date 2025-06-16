@@ -3,6 +3,7 @@ chain: Polkadot
 wss: wss://polkadot-rpc.dwellir.com
 create_db: true  # Set to true if database needs to be created
 retain_db: false  # Set to true to retain database after the end of process.
+restore_path: null  # Path to database backup file to restore from
 databases:
   - type: postgres
     host: 0.0.0.0 # Update the host ip

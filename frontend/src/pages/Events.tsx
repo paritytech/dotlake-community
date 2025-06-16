@@ -54,7 +54,6 @@ const Events: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const rowsPerPage = 25;
   const dispatch = useDispatch<AppDispatch>();
-  const { latestBlockNumber } = useSelector((state: RootState) => state.blocks);
 
   const fetchEvents = async () => {
     try {
@@ -62,13 +61,9 @@ const Events: React.FC = () => {
       // First update the store with latest blocks
       await dispatch(fetchRecentBlocks()).unwrap();
       
-      // Use the latest block number from the store
-      if (latestBlockNumber) {
-        const eventsResponse = await api.get(`/blocks/${latestBlockNumber}/events?page=${page}&page_size=${rowsPerPage}`);
-        console.log('Events response:', eventsResponse.data.events);
-        setEvents(eventsResponse.data.events);
-        setTotalPages(eventsResponse.data.total_pages);
-      }
+      const eventsResponse = await api.get(`/events/recent?page=${page}&page_size=${rowsPerPage}`);
+      setEvents(eventsResponse.data.events);
+      setTotalPages(eventsResponse.data.total_pages);
     } catch (err) {
       setError('Failed to fetch events');
       console.error(err);
@@ -82,7 +77,7 @@ const Events: React.FC = () => {
     // Set up auto-refresh every 12 seconds
     const intervalId = setInterval(fetchEvents, 12000);
     return () => clearInterval(intervalId);
-  }, [page, latestBlockNumber]);
+  }, [page]);
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);

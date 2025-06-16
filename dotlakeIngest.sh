@@ -46,6 +46,7 @@ DB_PROJECT=$(yq '.databases[0].project_id' config.yaml)
 DB_CRED_PATH=$(yq '.databases[0].credentials_path' config.yaml)
 DB_DATASET=$(yq '.databases[0].dataset' config.yaml)
 DB_TABLE=$(yq '.databases[0].table' config.yaml)
+DB_RESTORE_PATH=$(yq '.databases[0].restore_path' config.yaml)
 
 # Remove quotes from string variables
 CHAIN=$(echo $CHAIN | tr -d '"')
@@ -67,6 +68,7 @@ INGEST_MODE=$(echo $INGEST_MODE | tr -d '"')
 START_BLOCK=$(echo $START_BLOCK | tr -d '"')
 END_BLOCK=$(echo $END_BLOCK | tr -d '"')
 DB_CREDENTIALS=$(echo $DB_CREDENTIALS | tr -d '"')
+DB_RESTORE_PATH=$(echo $DB_RESTORE_PATH | tr -d '"')
 
 # Set default values for relay_chain and chain if empty
 if [[ -z "$RELAY_CHAIN" ]] || [[ "$RELAY_CHAIN" == "null" ]]; then
@@ -118,6 +120,7 @@ export SQLALCHEMY_URI="$SQLALCHEMY_URI"
 export INGEST_MODE="$INGEST_MODE"
 export START_BLOCK="$START_BLOCK" 
 export END_BLOCK="$END_BLOCK"
+export DB_RESTORE_PATH="$DB_RESTORE_PATH"
 if [[ -n "$DB_CRED_PATH" ]]; then
     DB_CREDENTIALS=$(<"$DB_CRED_PATH")
     export DB_CREDENTIALS="$DB_CREDENTIALS"

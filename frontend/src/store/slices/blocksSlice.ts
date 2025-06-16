@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
 
-interface Block {
+export interface Block {
   number: string;
   hash: string;
   parenthash: string;
@@ -25,8 +25,6 @@ interface SearchParams {
 interface BlocksState {
   recentBlocks: Block[];
   currentBlock: Block | null;
-  latestBlockNumber: number;
-  oldestBlockNumber: number;
   loading: boolean;
   error: string | null;
 }
@@ -34,8 +32,6 @@ interface BlocksState {
 const initialState: BlocksState = {
   recentBlocks: [],
   currentBlock: null,
-  latestBlockNumber: 0,
-  oldestBlockNumber: 0,
   loading: false,
   error: null,
 };
@@ -87,25 +83,6 @@ const blocksSlice = createSlice({
       .addCase(fetchRecentBlocks.fulfilled, (state, action) => {
         state.loading = false;
         state.recentBlocks = action.payload;
-        if (action.payload.length > 0) {
-          // Find max and min block numbers using string comparison
-          let maxBlock = action.payload[0].number;
-          let minBlock = action.payload[0].number;
-          
-          action.payload.forEach(block => {
-            if (compareBlockNumbers(block.number, maxBlock) > 0) {
-              maxBlock = block.number;
-            }
-            if (compareBlockNumbers(block.number, minBlock) < 0) {
-              minBlock = block.number;
-            }
-          });
-          
-          state.latestBlockNumber = parseInt(maxBlock);
-          if (state.oldestBlockNumber === 0 || parseInt(minBlock) < state.oldestBlockNumber) {
-            state.oldestBlockNumber = parseInt(minBlock);
-          }
-        }
       })
       .addCase(fetchRecentBlocks.rejected, (state, action) => {
         state.loading = false;
@@ -118,13 +95,6 @@ const blocksSlice = createSlice({
       .addCase(fetchBlock.fulfilled, (state, action) => {
         state.loading = false;
         state.currentBlock = action.payload;
-        if (action.payload) {
-          const blockNumber = parseInt(action.payload.number);
-          state.latestBlockNumber = Math.max(state.latestBlockNumber, blockNumber);
-          if (state.oldestBlockNumber === 0 || blockNumber < state.oldestBlockNumber) {
-            state.oldestBlockNumber = blockNumber;
-          }
-        }
       })
       .addCase(fetchBlock.rejected, (state, action) => {
         state.loading = false;

@@ -120,7 +120,7 @@ async def get_recent_blocks(limit: int = 50):
     """
     try:
         db_connection = connect_to_database(DATABASE_CONFIG)
-        blocks = query(db_connection, f"SELECT * FROM blocks_{os.getenv('RELAY_CHAIN')}_{os.getenv('CHAIN')} ORDER BY number DESC LIMIT {limit}")
+        blocks = query(db_connection, f"SELECT * FROM blocks_{os.getenv('RELAY_CHAIN')}_{os.getenv('CHAIN')} ORDER BY timestamp DESC LIMIT {limit}")
         close_connection(db_connection, DATABASE_CONFIG)
         return {"blocks": blocks.to_dict('records')}
     except Exception as e:
