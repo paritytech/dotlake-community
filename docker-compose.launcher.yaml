@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  dotlake-launcher:
+    build: .
+    container_name: dotlake-launcher
+    volumes:
+      # Mount Docker socket to allow the container to run Docker commands
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount the current directory to access config and ingest files
+      - .:/app
+      # Mount Docker binary to ensure compatibility
+      - /usr/bin/docker:/usr/bin/docker
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    ports:
+      # Expose ports for the services that will be launched
+      - "8080:8080"  # Substrate API Sidecar
+      - "8501:8501"  # Block Ingest Service
+      - "8088:8088"  # Apache Superset
+    privileged: true  # Required for Docker-in-Docker functionality
+    network_mode: host  # Use host networking for better service communication
+    restart: unless-stopped 

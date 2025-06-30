@@ -1,0 +1,3 @@
+window.ENV = {
+  CHAIN: '${CHAIN}'
+}; 

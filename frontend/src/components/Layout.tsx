@@ -1,26 +1,51 @@
 import React from 'react';
-import { Box, AppBar, Toolbar, Typography, Container, Paper, Link, Button } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Container, Paper, Link, Button, IconButton } from '@mui/material';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Brightness4, Brightness7 } from '@mui/icons-material';
 import SearchBar from './SearchBar';
+
+// Declare the window.ENV type
+declare global {
+  interface Window {
+    ENV?: {
+      CHAIN?: string;
+    };
+  }
+}
 
 interface LayoutProps {
   children: React.ReactNode;
+  mode: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps> = ({ children, mode, onToggleTheme }) => {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+
+  // Get chain name from environment variable
+  const chainName = window.ENV?.CHAIN || 'Polkadot';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            <Link component={RouterLink} to="/" color="inherit" underline="none">
-              Dotlake Explorer
-            </Link>
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          {/* Left section */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h6" component="div">
+              <Link component={RouterLink} to="/" color="inherit" underline="none">
+                Dotlake Explorer
+              </Link>
+            </Typography>
+          </Box>
+
+          {/* Center section */}
+          <Typography variant="h6" component="div">
+            {chainName}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+
+          {/* Right section */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Button
               component={RouterLink}
               to="/blocks"
@@ -45,6 +70,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               Events
             </Button>
+            <Button
+              component={RouterLink}
+              to="/account"
+              color="inherit"
+              sx={{ textTransform: 'none' }}
+            >
+              Account
+            </Button>
+            <IconButton onClick={onToggleTheme} color="inherit">
+              {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+            </IconButton>
           </Box>
         </Toolbar>
       </AppBar>

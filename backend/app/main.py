@@ -109,6 +109,12 @@ class PaginatedExtrinsicResponse(BaseModel):
     page_size: int
     total_pages: int
 
+class AccountBalanceResponse(BaseModel):
+    account_id: str
+    balances: List[Dict[str, Any]]
+    relay_chain: str
+    chain: str
+
 @router.get("/")
 async def root():
     return {"message": "Welcome to Dotlake Block Explorer API"}
@@ -588,6 +594,125 @@ async def get_extrinsic_by_hash(extrinsic_hash: str):
             'block_hash': row['hash'],
             'event_count': row['event_count']
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/accounts/{account_id}", response_model=AccountBalanceResponse)
+async def get_account_balances(account_id: str):
+    """
+    Get account balances by account ID from the sidecar instance
+    """
+    try:
+        import httpx
+        sidecar_url = os.getenv('SIDECAR_URL', 'http://172.18.0.1:8080')
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{sidecar_url}/accounts/{account_id}/asset-balances")
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="Account not found")
+            response.raise_for_status()
+            
+            balances_data = response.json()
+            return {
+                'account_id': account_id,
+                'balances': balances_data.get('assets', []),
+                'relay_chain': os.getenv('RELAY_CHAIN'),
+                'chain': os.getenv('CHAIN')
+            }
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch account balances: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/events/recent", response_model=PaginatedEventResponse)
+async def get_recent_events(
+    pallet: Optional[str] = Query(None, description="Filter events by pallet name"),
+    method: Optional[str] = Query(None, description="Filter events by method name"),
+    extrinsic_id: Optional[str] = Query(None, description="Filter events by extrinsic ID"),
+    page: int = Query(1, ge=1, description="Page number for pagination"),
+    page_size: int = Query(50, ge=1, le=100, description="Number of events per page")
+):
+    """
+    Get the most recent events. Supports filtering by pallet, method,
+    and extrinsic ID, with pagination.
+    """
+    try:
+        db_connection = connect_to_database(DATABASE_CONFIG)
+
+        # Build WHERE clause
+        where_clauses = []
+        if pallet:
+            where_clauses.append(f"LOWER(pallet) = LOWER('{pallet}')")
+        if method:
+            where_clauses.append(f"LOWER(method) = LOWER('{method}')")
+        if extrinsic_id:
+            where_clauses.append(f"extrinsic_id = '{extrinsic_id}'")
+
+        where_clause = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+        # Get total count
+        count_query = f"""
+            SELECT COUNT(*) as count
+            FROM events_{os.getenv('RELAY_CHAIN')}_{os.getenv('CHAIN')}
+            WHERE {where_clause}
+        """
+        count_result = query(db_connection, count_query)
+        total_events = count_result['count'].iloc[0]
+
+        # Calculate pagination
+        offset = (page - 1) * page_size
+        total_pages = (total_events + page_size - 1) // page_size
+
+        # Get paginated events
+        events_query = f"""
+            SELECT *
+            FROM events_{os.getenv('RELAY_CHAIN')}_{os.getenv('CHAIN')}
+            WHERE {where_clause}
+            ORDER BY timestamp DESC, event_id
+            LIMIT {page_size} OFFSET {offset}
+        """
+        events = query(db_connection, events_query)
+        close_connection(db_connection, DATABASE_CONFIG)
+
+        if events.empty and page == 1:
+            raise HTTPException(status_code=404, detail="No events found")
+
+        # Process events
+        processed_events = []
+        for _, event in events.iterrows():
+            # Parse JSON data field
+            data = event['data']
+            if isinstance(data, str):
+                try:
+                    data = json.loads(data)
+                except json.JSONDecodeError:
+                    data = {'raw': data}
+            
+            # If data is a list, convert it to a dictionary with index keys
+            if isinstance(data, list):
+                data = {str(i): item for i, item in enumerate(data)}
+                    
+            processed_events.append({
+                'relay_chain': event['relay_chain'],
+                'chain': event['chain'],
+                'timestamp': event['timestamp'],
+                'number': event['number'],
+                'hash': event['hash'],
+                'extrinsic_id': event['extrinsic_id'],
+                'event_id': event['event_id'],
+                'pallet': event['pallet'],
+                'method': event['method'],
+                'data': data,
+                'source': event['source']
+            })
+
+        return {
+            'events': processed_events,
+            'total': total_events,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': total_pages
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -81,6 +81,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
+    environment:
+      - CHAIN=${CHAIN}
     depends_on:
       - backend
     networks:
@@ -137,32 +139,32 @@ services:
     networks:
       - dotlake_network
 
-  db-restore:
-    container_name: dotlake-db-restore
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - RESTORE_PATH=${DB_RESTORE_PATH}
-    volumes:
-      - postgres_data_v15:/var/lib/postgresql/data
-      - ${DB_RESTORE_PATH}:/dotlake_backup.dump
-    command: >
-      bash -c "
-        echo 'Waiting for postgres to be ready...' &&
-        sleep 10 &&
-        if [ -f /dotlake_backup.dump ]; then
-          echo 'Restoring database from backup...' &&
-          pg_restore -h postgres -U ${DB_USER} -d ${DB_NAME} -v /dotlake_backup.dump
-        else
-          echo 'No backup file found, skipping restore'
-        fi
-      "
-    depends_on:
-      - postgres
-    networks:
-      - dotlake_network
+  # db-restore:
+  #   container_name: dotlake-db-restore
+  #   image: postgres:15
+  #   environment:
+  #     - POSTGRES_DB=${DB_NAME}
+  #     - POSTGRES_USER=${DB_USER}
+  #     - POSTGRES_PASSWORD=${DB_PASSWORD}
+  #     - DB_RESTORE_PATH=${DB_RESTORE_PATH}
+  #   volumes:
+  #     - postgres_data_v15:/var/lib/postgresql/data
+  #     - ${DB_RESTORE_PATH:-/dev/null}:/dotlake_backup.dump:ro
+  #   command: >
+  #     bash -c "
+  #       echo 'Waiting for postgres to be ready...' &&
+  #       sleep 10 &&
+  #       if [ -f /dotlake_backup.dump ] && [ ! -L /dotlake_backup.dump ]; then
+  #         echo 'Restoring database from backup...' &&
+  #         PGPASSWORD=${DB_PASSWORD} pg_restore -h postgres -U ${DB_USER} -d ${DB_NAME} -v /dotlake_backup.dump
+  #       else
+  #         echo 'No backup file found, skipping restore'
+  #       fi
+  #     "
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - dotlake_network
 
   postgres:
     image: postgres:15
