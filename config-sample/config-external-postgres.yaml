@@ -1,0 +1,30 @@
+# DotLake Configuration - External PostgreSQL Database
+# This example shows how to configure DotLake with an external PostgreSQL database
+
+# Chain Configuration
+chain:
+  relay_chain: Polkadot
+  name: Polkadot
+  wss_endpoint: wss://polkadot-rpc.dwellir.com
+
+# Ingest Configuration
+ingest:
+  mode: live  # live | historical
+  # Note: block_range is not needed for live mode
+
+# Database Configuration
+database:
+  # Local database disabled
+  local:
+    enabled: false
+  
+  # External PostgreSQL database
+  external:
+    enabled: true
+    type: postgres
+    connection:
+      host: your-postgres-host.com
+      port: 5432
+      name: dotlake
+      user: your_username
+      password: your_password 

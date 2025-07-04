@@ -52,6 +52,32 @@ def insert_block_data(database_info, db_connection, block_data, chain_name, rela
         from bigquery_utils import connect_to_bigquery, insert_block
         insert_block(db_connection, database_info['database_dataset'], database_info['database_table'], block_data)
 
+def insert_basic_block_data(database_info, db_connection, basic_block_data, chain_name, relay_chain):
+    if database_info['database'] == 'postgres':
+        from postgres_utils import insert_basic_block_data, close_connection
+        insert_basic_block_data(db_connection, basic_block_data, chain_name, relay_chain)
+        # close_connection(db_connection)
+
+def insert_extrinsics(database_info, db_connection, extrinsics, chain_name, relay_chain):
+    if database_info['database'] == 'postgres':
+        from postgres_utils import insert_extrinsics, close_connection
+        for extrinsic in extrinsics:
+            insert_extrinsics(db_connection, extrinsic, chain_name, relay_chain)
+        # close_connection(db_connection)
+
+def insert_events(database_info, db_connection, events, chain_name, relay_chain):
+    if database_info['database'] == 'postgres':
+        from postgres_utils import insert_events, close_connection
+        for event in events:
+            insert_events(db_connection, event, chain_name, relay_chain)
+        # close_connection(db_connection)
+
+def insert_logs(database_info, db_connection, logs, chain_name, relay_chain):
+    if database_info['database'] == 'postgres':
+        from postgres_utils import insert_logs, close_connection
+        for log in logs:
+            insert_logs(db_connection, log, chain_name, relay_chain)
+        # close_connection(db_connection)
 
 def close_connection(db_connection, database_info: Dict[str, Any]):
     if database_info['database'] in ['postgres', 'mysql']:
@@ -80,9 +106,9 @@ def query_last_block(db_connection, database_info: Dict[str, Any], chain: str, r
 
     if block_num is None:
         if database_info['database'] == 'bigquery':
-            fetch_last_block_query = f"SELECT * FROM {database_info['database_dataset']}.{database_info['database_table']} ORDER BY number DESC LIMIT 1"
+            fetch_last_block_query = f"SELECT * FROM {database_info['database_dataset']}.{database_info['database_table']} ORDER BY timestamp DESC LIMIT 1"
         else:
-            fetch_last_block_query = f"SELECT * FROM blocks_{relay_chain}_{chain} ORDER BY number DESC LIMIT 1"
+            fetch_last_block_query = f"SELECT * FROM blocks_{relay_chain}_{chain} ORDER BY timestamp DESC LIMIT 1"
     else:
         if database_info['database'] == 'bigquery':
             fetch_last_block_query = f"SELECT * FROM {database_info['database_dataset']}.{database_info['database_table']} WHERE number='{block_num}' LIMIT 1"

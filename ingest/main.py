@@ -57,7 +57,7 @@ def main():
 
     sidecar_url = "http://172.18.0.1:8080"
 
-    last_block = -1
+    last_block = -1 if args.ingest_mode == "live" else args.start_block - 1
 
     if args.ingest_mode == "historical":
         try:

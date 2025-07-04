@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  frontend:
+    container_name: dotlake-frontend
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"

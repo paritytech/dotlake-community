@@ -1,0 +1,30 @@
+# DotLake Configuration - External MySQL Database
+# This example shows how to configure DotLake with an external MySQL database
+
+# Chain Configuration
+chain:
+  relay_chain: Polkadot
+  name: Polkadot
+  wss_endpoint: wss://polkadot-rpc.dwellir.com
+
+# Ingest Configuration
+ingest:
+  mode: live  # live | historical
+  # Note: block_range is not needed for live mode
+
+# Database Configuration
+database:
+  # Local database disabled
+  local:
+    enabled: false
+  
+  # External MySQL database
+  external:
+    enabled: true
+    type: mysql
+    connection:
+      host: your-mysql-host.com
+      port: 3306
+      name: dotlake
+      user: your_username
+      password: your_password 
