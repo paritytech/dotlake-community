@@ -138,11 +138,6 @@ We welcome contributions! See our [Development Guide](Development-Guide) for det
 - **Documentation**: Check our [Troubleshooting Guide](Troubleshooting)
 - **Issues**: [GitHub Issues](https://github.com/your-org/dotlake-community/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/dotlake-community/discussions)
-- **Community**: Join our [Discord/Telegram] (links to be added)
-
-## 📄 License
-
-[License information to be added]
 
 ---
 
