@@ -40,16 +40,8 @@ python cleanup.py
 
 ## ⚙️ Configuration
 
-Key settings in `config.yaml`:
-```yaml
-relay_chain: Polkadot
-chain: PolkadotAssetHub
-wss: wss://your-node-endpoint
-ingest_mode: historical  # or live
-start_block: 9000000
-end_block: 9076000
-create_db: true
-```
+You can refer to `config-example.yaml` for a reference on how to configure your `config.yaml` file. This example provides a template for chain, ingest, and database settings. Copy and modify it to match your environment and requirements.
+
 
 ## 🏗️ Architecture
 
