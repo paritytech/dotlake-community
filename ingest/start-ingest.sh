@@ -3,6 +3,14 @@
 # Default values
 # DB_PATH="blocks.db"
 
+if [[ -z "$START_BLOCK" ]]; then
+  START_BLOCK=0
+fi
+
+if [[ -z "$END_BLOCK" ]]; then
+  END_BLOCK=0
+fi
+
 echo "Connection Info"
 echo "Chain: $CHAIN"
 echo "Relay Chain: $RELAY_CHAIN"
